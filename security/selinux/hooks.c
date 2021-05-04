@@ -108,8 +108,9 @@ static DEFINE_MUTEX(selinux_sdcardfs_lock);
 
 #ifdef CONFIG_SECURITY_SELINUX_DEVELOP
 // [ SEC_SELINUX_PORTING_COMMON
-#if defined(CONFIG_ALWAYS_ENFORCE) && defined(CONFIG_RKP_KDP)
-RKP_RO_AREA int selinux_enforcing;
+#if defined(CONFIG_SECURITY_SELINUX_ALWAYS_ENFORCE) && defined(CONFIG_RKP_KDP)
+//CONFIG_RKP_KDP
+int selinux_enforcing __kdp_ro;
 #else
 int selinux_enforcing;
 #endif
@@ -118,14 +119,17 @@ int selinux_enforcing;
 static int __init enforcing_setup(char *str)
 {
 	unsigned long enforcing;
-	if (!kstrtoul(str, 0, &enforcing))
+	if (!kstrtoul(str, 0, &enforcing)) {
 // [ SEC_SELINUX_PORTING_COMMON
-#ifdef CONFIG_ALWAYS_ENFORCE
+#ifdef CONFIG_SECURITY_SELINUX_ALWAYS_ENFORCE
 		selinux_enforcing = 1;
+#elif defined(CONFIG_SECURITY_SELINUX_ALWAYS_PERMISSIVE)
+		selinux_enforcing = 0;
 #else
 		selinux_enforcing = enforcing ? 1 : 0;
 #endif
 // ] SEC_SELINUX_PORTING_COMMON
+	}
 	return 1;
 }
 __setup("enforcing=", enforcing_setup);
@@ -137,14 +141,15 @@ int selinux_enabled = CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE;
 static int __init selinux_enabled_setup(char *str)
 {
 	unsigned long enabled;
-	if (!kstrtoul(str, 0, &enabled))
+	if (!kstrtoul(str, 0, &enabled)) {
 // [ SEC_SELINUX_PORTING_COMMON
-#ifdef CONFIG_ALWAYS_ENFORCE
+#ifdef CONFIG_SECURITY_SELINUX_ALWAYS_ENFORCE
 		selinux_enabled = 1;
 #else
 		selinux_enabled = enabled ? 1 : 0;
 #endif
 // ] SEC_SELINUX_PORTING_COMMON
+	}
 	return 1;
 }
 __setup("selinux=", selinux_enabled_setup);
@@ -6544,7 +6549,7 @@ static __init int selinux_init(void)
 {
 	if (!security_module_enable("selinux")) {
 // [ SEC_SELINUX_PORTING_COMMON
-#ifdef CONFIG_ALWAYS_ENFORCE
+#ifdef CONFIG_SECURITY_SELINUX_ALWAYS_ENFORCE
 		selinux_enabled = 1;
 #else
 		selinux_enabled = 0;
@@ -6655,8 +6660,8 @@ static int __init selinux_nf_ip_init(void)
 {
 	int err;
 // [ SEC_SELINUX_PORTING_COMMON
-#ifdef CONFIG_ALWAYS_ENFORCE
-		selinux_enabled = 1;
+#ifdef CONFIG_SECURITY_SELINUX_ALWAYS_ENFORCE
+	selinux_enabled = 1;
 #endif
 // ] SEC_SELINUX_PORTING_COMMON
 	if (!selinux_enabled)
