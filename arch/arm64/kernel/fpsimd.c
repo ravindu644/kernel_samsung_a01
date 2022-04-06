@@ -26,6 +26,7 @@
 #include <linux/hardirq.h>
 
 #include <asm/fpsimd.h>
+#include <asm/cpufeature.h>
 #include <asm/cputype.h>
 
 #include <linux/sec_debug.h>
