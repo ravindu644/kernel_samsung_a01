@@ -34,7 +34,7 @@ CLANG_TRIPLE=aarch64-linux-gnu- \
 "
 
 build_kernel(){
-    make ${ARGS} sdm439_sec_a01q_swa_ins_defconfig a01.config
+    make ${ARGS} sdm439_sec_a01q_swa_ins_defconfig a01.config nethunter.config
     make ${ARGS} menuconfig
     make ${ARGS}
 }
@@ -47,6 +47,9 @@ copy_modules(){
     cd "${RDIR}"
     find . -type f -name "*.ko" -exec cp -n {} modules \;
     echo "Module files copied to the 'modules' folder."
+    cp "${RDIR}/modules"/* "${RDIR}/nh_lkm/system/vendor/lib/modules/"
+    cd "${RDIR}/nh_lkm" ; zip -r "Kali Nethunter Drivers - Galaxy S10x [MAGISK].zip" .
+    mv "Kali Nethunter Drivers - SM-A015x [MAGISK].zip" "${RDIR}/build"
     cd "${RDIR}"
 }
 
