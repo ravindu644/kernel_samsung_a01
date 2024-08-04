@@ -31,7 +31,7 @@ DTC_EXT=$(pwd)/tools/dtc \
 CONFIG_BUILD_ARM64_DT_OVERLAY=y \
 ARCH=arm64 \
 CROSS_COMPILE=aarch64-linux-android- \
-REAL_CC=clang \
+CC=clang \
 CLANG_TRIPLE=aarch64-linux-gnu- \
 "
 
