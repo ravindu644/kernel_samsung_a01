@@ -41,4 +41,16 @@ build_kernel(){
     make ${ARGS}
 }
 
+#Copy kernel modules (*.ko)
+copy_modules(){
+    if [ ! -d "${RDIR}/modules" ]; then
+    mkdir -p "${RDIR}/modules"
+    fi
+    cd "${RDIR}"
+    find . -type f -name "*.ko" -exec cp -n {} modules \;
+    echo "Module files copied to the 'modules' folder."
+    cd "${RDIR}"
+}
+
 build_kernel
+copy_modules
