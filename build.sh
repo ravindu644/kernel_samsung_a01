@@ -36,7 +36,7 @@ CLANG_TRIPLE=aarch64-linux-gnu- \
 "
 
 build_kernel(){
-    make ${ARGS} sdm439_sec_a01q_swa_ins_defconfig
+    make ${ARGS} sdm439_sec_a01q_swa_ins_defconfig a01.config
     make ${ARGS} menuconfig
     make ${ARGS}
 }
