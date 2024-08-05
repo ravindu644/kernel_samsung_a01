@@ -1,8 +1,6 @@
 #!/bin/bash
 export RDIR=$(pwd)
 export ARCH=arm64
-export PLATFORM_VERSION=12
-export ANDROID_MAJOR_VERSION=s
 
 #symlinking python2
 if [ ! -f "$HOME/python" ]; then
