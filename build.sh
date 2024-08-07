@@ -7,14 +7,15 @@ if [ ! -f "$HOME/python" ]; then
     ln -s /usr/bin/python2.7 "$HOME/python"
 fi 
 
-#proton-12
+#toolchains
 if [ ! -d "${RDIR}/toolchains" ]; then
-    mkdir -p "${RDIR}/toolchains"
-    git clone --depth=1 https://github.com/ravindu644/aarch64-linux-android-4.9.git --single-branch toolchains/compiler
-    git clone --depth=1 https://github.com/ravindu644/llvm-arm-toolchain-ship-10.0.git --single-branch toolchains/clang
+    mkdir -p "${RDIR}/toolchains" ; cd "${RDIR}/toolchains"
+    git clone --depth=1 https://github.com/ravindu644/proton-12.git --single-branch
+    wget https://kali.download/nethunter-images/toolchains/linaro-aarch64-7.5.tar.xz ; tar -xvf linaro-aarch64-7.5.tar.xz ; rm linaro-aarch64-7.5.tar.xz
+    cd "${RDIR}"
 fi
 
-export PATH=$PWD/toolchains/clang/bin:$PWD/toolchains/compiler/bin:$PATH
+export PATH=$PWD/toolchains/proton-12/bin:$PWD/toolchains/aarch64-linaro-7.5/bin:$PATH
 
 #output dir
 if [ ! -d "${RDIR}/out" ]; then
@@ -28,7 +29,7 @@ O=$(pwd)/out \
 DTC_EXT=$(pwd)/tools/dtc \
 CONFIG_BUILD_ARM64_DT_OVERLAY=y \
 ARCH=arm64 \
-CROSS_COMPILE=aarch64-linux-android- \
+CROSS_COMPILE=aarch64-linux-gnu- \
 CC=clang \
 CLANG_TRIPLE=aarch64-linux-gnu- \
 "
