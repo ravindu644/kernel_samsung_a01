@@ -1,6 +1,7 @@
 #!/bin/bash
 export RDIR=$(pwd)
 export ARCH=arm64
+export KBUILD_BUILD_USER="@ravindu644"
 
 #symlinking python2
 if [ ! -f "$HOME/python" ]; then
