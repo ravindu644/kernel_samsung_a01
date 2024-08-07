@@ -1,0 +1,34 @@
+name: Kernel Compilation
+
+on:
+  workflow_dispatch:
+    inputs:      
+      tag:
+        description: 'Release Tag'
+        required: true    
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: Set up build environment
+      run: |
+        sudo apt update -y  
+        sudo apt install libncurses5-dev python2 libtinfo5 -y  
+        export PATH=$PWD/toolchains/proton-12/bin:$PWD/toolchains/aarch64-linaro-7.5/bin:$PATH
+
+    - name: Compile Kernel
+      run: |
+        bash build.sh
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Nethunter-SM-A015x-${{ github.event.inputs.tag }}
+        path: build/*.zip
