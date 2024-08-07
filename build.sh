@@ -10,6 +10,7 @@ fi
 #linaro
 if [ ! -d "${RDIR}/toolchains" ]; then
     mkdir -p "${RDIR}/toolchains"
+    cd "${RDIR}/toolchains"
     wget https://kali.download/nethunter-images/toolchains/linaro-aarch64-7.5.tar.xz ; tar -xvf linaro-aarch64-7.5.tar.xz ; rm linaro-aarch64-7.5.tar.xz
     cd "${RDIR}"
 fi
