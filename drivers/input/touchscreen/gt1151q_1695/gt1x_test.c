@@ -243,17 +243,6 @@ int is_digit(char ch)
 		return 0;
 }
 
-int is_space(char ch)
-{
-	if (ch == ' ')
-
-		return 1;
-
-	else
-
-		return 0;
-}
-
 /* return value = float value * 1000; */
 long atof(char const *s)
 {
