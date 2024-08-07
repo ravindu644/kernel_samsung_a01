@@ -22,6 +22,11 @@ if [ ! -d "${RDIR}/out" ]; then
     mkdir -p "${RDIR}/out"
 fi
 
+#build dir
+if [ ! -d "${RDIR}/build" ]; then
+    mkdir -p "${RDIR}/build"
+fi
+
 export ARGS="
 -j$(nproc) \
 -C $(pwd) \
@@ -37,7 +42,7 @@ CLANG_TRIPLE=aarch64-linux-gnu- \
 build_kernel(){
     make ${ARGS} sdm439_sec_a01q_swa_ins_defconfig a01.config nethunter.config
     make ${ARGS} menuconfig
-    make ${ARGS}
+    make ${ARGS} || exit 1
 }
 
 #Copy kernel modules (*.ko)
@@ -50,10 +55,18 @@ copy_modules(){
     echo "Module files copied to the 'modules' folder."
     cp "${RDIR}/modules"/* "${RDIR}/nh_lkm/system/vendor/lib/modules/"
     rm -f "${RDIR}/nh_lkm/system/vendor/lib/modules/.placeholder" ; rm -f "${RDIR}/nh_lkm/system/lib/modules/.placeholder"
-    cd "${RDIR}/nh_lkm" ; zip -r "Kali Nethunter Drivers - Galaxy S10x [MAGISK].zip" .
+    cd "${RDIR}/nh_lkm" ; zip -r "Kali Nethunter Drivers - SM-A015x [MAGISK].zip" .
     mv "Kali Nethunter Drivers - SM-A015x [MAGISK].zip" "${RDIR}/build"
     cd "${RDIR}"
 }
 
+ak3(){
+    cp "${RDIR}/out/arch/arm64/boot/Image" "${RDIR}/AnyKernel3"
+    cd "${RDIR}/AnyKernel3"
+    zip -r "Nethunter-SM-A015x.zip" * ; mv "Nethunter-SM-A015x.zip" "${RDIR}/build"
+    echo -e "\n[i] Build Finished..!\n"
+}
+
 build_kernel
 copy_modules
+ak3
