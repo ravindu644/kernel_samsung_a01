@@ -21,7 +21,7 @@ jobs:
       run: |
         sudo apt update -y  
         sudo apt install libncurses5-dev python2 libtinfo5 -y  
-        export PATH=$PWD/toolchains/proton-12/bin:$PWD/toolchains/aarch64-linaro-7.5/bin:$PATH
+        export PATH=$HOME/toolchains/proton-12/bin:$HOME/toolchains/aarch64-linaro-7.5/bin:$PATH
 
     - name: Compile Kernel
       run: |
