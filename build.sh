@@ -9,14 +9,14 @@ if [ ! -f "$HOME/python" ]; then
 fi 
 
 #toolchains
-if [ ! -d "${RDIR}/toolchains" ]; then
-    mkdir -p "${RDIR}/toolchains" ; cd "${RDIR}/toolchains"
+if [ ! -d "${HOME}/toolchains" ]; then
+    mkdir -p "${HOME}/toolchains" ; cd "${HOME}/toolchains"
     git clone --depth=1 https://github.com/ravindu644/proton-12.git --single-branch
     wget https://kali.download/nethunter-images/toolchains/linaro-aarch64-7.5.tar.xz ; tar -xvf linaro-aarch64-7.5.tar.xz ; rm linaro-aarch64-7.5.tar.xz
     cd "${RDIR}"
 fi
 
-export PATH=$PWD/toolchains/proton-12/bin:$PWD/toolchains/aarch64-linaro-7.5/bin:$PATH
+export PATH=$HOME/toolchains/proton-12/bin:$HOME/toolchains/aarch64-linaro-7.5/bin:$PATH
 
 #output dir
 if [ ! -d "${RDIR}/out" ]; then
