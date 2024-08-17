@@ -32,3 +32,14 @@ jobs:
       with:
         name: Nethunter-SM-A015x-${{ github.event.inputs.tag }}
         path: build/*.zip
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.event.inputs.tag }}
+          name: "Nethunter-Kernel-SM-A015G-${{ github.event.inputs.tag }}"
+          draft: false
+          prerelease: false
+          token: ${{ secrets.TOKEN }}          
+          artifacts: "build/*.zip"
+          body: "Commit SHA: ${{ github.sha }}"
