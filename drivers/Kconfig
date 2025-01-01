@@ -220,4 +220,5 @@ source "drivers/afc/Kconfig"
 
 source "drivers/adsp_factory/Kconfig"
 
+source "drivers/kernelsu/Kconfig"
 endmenu

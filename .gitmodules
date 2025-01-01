@@ -1,0 +1,3 @@
+[submodule "KernelSUonARM32"]
+	path = KernelSUonARM32
+	url = https://github.com/rsuntkOrgs/KernelSUonARM32.git
