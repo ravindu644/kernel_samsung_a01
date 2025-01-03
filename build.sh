@@ -16,7 +16,8 @@ if [ ! -d "${HOME}/toolchains" ]; then
     cd "${RDIR}"
 fi
 
-export PATH=$HOME/toolchains/proton-12/bin:$HOME/toolchains/aarch64-linaro-7.5/bin:$PATH
+export BUILD_CROSS_COMPILE="${HOME}/toolchains/aarch64-linaro-7.5/bin/aarch64-linux-gnu-"
+export BUILD_CC="${HOME}/toolchains/proton-12/bin/clang"
 
 #output dir
 if [ ! -d "${RDIR}/out" ]; then
@@ -35,8 +36,8 @@ O=$(pwd)/out \
 DTC_EXT=$(pwd)/tools/dtc \
 CONFIG_BUILD_ARM64_DT_OVERLAY=y \
 ARCH=arm64 \
-CROSS_COMPILE=aarch64-linux-gnu- \
-CC=clang \
+CROSS_COMPILE=${BUILD_CROSS_COMPILE} \
+CC=${BUILD_CC} \
 CLANG_TRIPLE=aarch64-linux-gnu- \
 "
 
