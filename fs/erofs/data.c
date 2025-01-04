@@ -8,6 +8,7 @@
 #include <linux/prefetch.h>
 #include <linux/uio.h>
 #include <linux/blkdev.h>
+#include <linux/blk_types.h>
 
 #include <trace/events/erofs.h>
 
