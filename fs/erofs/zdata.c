@@ -11,6 +11,30 @@
 
 #include <trace/events/erofs.h>
 
+/* Fix for undefined reference to `kvzalloc` */
+static inline void *kvzalloc(size_t size, gfp_t flags)
+{
+    return kvmalloc(size, flags | __GFP_ZERO);
+}
+/* End fix */
+
+/* Fix for undefined reference to `bio_set_dev` */
+static inline void bio_set_dev(struct bio *bio, struct block_device *bdev)
+{
+    bio->bi_bdev = bdev;
+}
+/* End fix */
+
+/* Fix for undefined reference to `kvmalloc_array` */
+static inline void *kvmalloc_array(size_t n, size_t size, gfp_t flags)
+{
+    if (size != 0 && n > SIZE_MAX / size)
+        return NULL;
+
+    return kvmalloc(n * size, flags);
+}
+/* End fix */
+
 /*
  * a compressed_pages[] placeholder in order to avoid
  * being filled with file pages for in-place decompression.

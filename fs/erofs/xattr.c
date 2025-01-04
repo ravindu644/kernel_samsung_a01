@@ -7,6 +7,15 @@
 #include <linux/security.h>
 #include "xattr.h"
 
+/* Fix for undefined reference to `clear_and_wake_up_bit` */
+static inline void clear_and_wake_up_bit(int bit, void *word)
+{
+    clear_bit_unlock(bit, word);
+    smp_mb__after_atomic(); // Ensures proper memory barrier
+    wake_up_bit(word, bit);
+}
+/* End fix */
+
 struct xattr_iter {
 	struct super_block *sb;
 	struct page *page;

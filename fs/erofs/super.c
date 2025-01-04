@@ -15,6 +15,13 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/erofs.h>
 
+/* Fix for undefined reference to `sb_rdonly` */
+static inline bool sb_rdonly(const struct super_block *sb)
+{
+    return sb->s_flags & MS_RDONLY;
+}
+/* End fix */
+
 static struct kmem_cache *erofs_inode_cachep __read_mostly;
 
 void _erofs_err(struct super_block *sb, const char *function,

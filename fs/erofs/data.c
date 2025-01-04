@@ -12,6 +12,13 @@
 
 #include <trace/events/erofs.h>
 
+/* Fix for undefined reference to `bio_set_dev` */
+static inline void bio_set_dev(struct bio *bio, struct block_device *bdev)
+{
+    bio->bi_bdev = bdev;
+}
+/* End fix */
+
 static void erofs_readendio(struct bio *bio)
 {
 	int i;

@@ -8,6 +8,15 @@
 #include <asm/unaligned.h>
 #include <trace/events/erofs.h>
 
+/* Fix for undefined reference to `clear_and_wake_up_bit` */
+static inline void clear_and_wake_up_bit(int bit, void *word)
+{
+    clear_bit_unlock(bit, word);
+    smp_mb__after_atomic(); // Ensures proper memory barrier
+    wake_up_bit(word, bit);
+}
+/* End fix */
+
 int z_erofs_fill_inode(struct inode *inode)
 {
 	struct erofs_inode *const vi = EROFS_I(inode);
