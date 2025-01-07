@@ -27,7 +27,15 @@ fi
 #build dir
 if [ ! -d "${RDIR}/build" ]; then
     mkdir -p "${RDIR}/build"
+else
+    rm -rf "${RDIR}/build" && mkdir -p "${RDIR}/build"
 fi
+
+#setting up localversion
+if [ -z "$NH_KERNEL_VERSION" ]; then
+    export NH_KERNEL_VERSION="dev"
+fi
+echo -e "CONFIG_LOCALVERSION_AUTO=n\nCONFIG_LOCALVERSION=\"-nh-${NH_KERNEL_VERSION}@ravindu644\"\n" > "${RDIR}/arch/arm64/configs/version.config"
 
 export ARGS="
 -j$(nproc) \
@@ -43,7 +51,7 @@ CLANG_TRIPLE=aarch64-linux-gnu- \
 
 build_kernel(){
     make ${ARGS} clean && make ${ARGS} mrproper
-    make ${ARGS} sdm439_sec_a01q_swa_ins_defconfig a01.config nethunter.config excludes.config
+    make ${ARGS} sdm439_sec_a01q_swa_ins_defconfig a01.config nethunter.config excludes.config version.config
     make ${ARGS} menuconfig
     make ${ARGS} || exit 1
 }
@@ -63,14 +71,25 @@ copy_modules(){
     cd "${RDIR}"
 }
 
+#building booot.img
 build_boot() {    
     rm -f ${RDIR}/AIK-Linux/split_img/boot.img-kernel ${RDIR}/AIK-Linux/boot.img
     cp "${RDIR}/out/arch/arm64/boot/Image" ${RDIR}/AIK-Linux/split_img/boot.img-kernel
     mkdir -p ${RDIR}/AIK-Linux/ramdisk/{debug_ramdisk,dev,metadata,mnt,proc,second_stage_resources,sys}
     cd ${RDIR}/AIK-Linux && ./repackimg.sh --nosudo && mv image-new.img boot.img
-    echo -e "\n[i] Build Finished..!\n" && cd cd ${RDIR}
+    echo -e "\n[i] Build Finished..!\n" && cd ${RDIR}
 }
+
+#making twrp flashable zip
+build_zip() {
+    cp ${RDIR}/AIK-Linux/boot.img ${RDIR}/twrp_zip/
+    cd ${RDIR}/twrp_zip/
+    zip -r ../build/Nethunter-SM-A015F-${NH_KERNEL_VERSION}.zip *
+    cd ${RDIR}
+}
+
 
 build_kernel
 copy_modules
 build_boot
+build_zip
