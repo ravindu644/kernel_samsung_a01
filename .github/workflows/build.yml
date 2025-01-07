@@ -25,7 +25,7 @@ jobs:
 
     - name: Compile Kernel
       run: |
-        export NH_KERNEL_VERSION=${{ github.event.inputs.tag }}" && bash build.sh
+        export NH_KERNEL_VERSION=${{ github.event.inputs.tag }} && bash build.sh
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
