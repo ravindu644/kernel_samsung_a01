@@ -1,5 +1,5 @@
 #!/bin/bash
-export RDIR=$(pwd)
+export RDIR="$(pwd)"
 export ARCH=arm64
 export KBUILD_BUILD_USER="@ravindu644"
 
@@ -63,13 +63,14 @@ copy_modules(){
     cd "${RDIR}"
 }
 
-ak3(){
-    cp "${RDIR}/out/arch/arm64/boot/Image" "${RDIR}/AnyKernel3"
-    cd "${RDIR}/AnyKernel3"
-    zip -r "Nethunter-SM-A015x.zip" * ; mv "Nethunter-SM-A015x.zip" "${RDIR}/build"
-    echo -e "\n[i] Build Finished..!\n"
+build_boot() {    
+    rm -f ${RDIR}/AIK-Linux/split_img/boot.img-kernel ${RDIR}/AIK-Linux/boot.img
+    cp "${RDIR}/out/arch/arm64/boot/Image" ${RDIR}/AIK-Linux/split_img/boot.img-kernel
+    mkdir -p ${RDIR}/AIK-Linux/ramdisk/{debug_ramdisk,dev,metadata,mnt,proc,second_stage_resources,sys}
+    cd ${RDIR}/AIK-Linux && ./repackimg.sh --nosudo && mv image-new.img boot.img
+    echo -e "\n[i] Build Finished..!\n" && cd cd ${RDIR}
 }
 
 build_kernel
 copy_modules
-ak3
+build_boot
