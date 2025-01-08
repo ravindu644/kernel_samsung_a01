@@ -19,6 +19,100 @@
 #include "input-event-codes.h"
 
 /*
+ * sec Log
+ */
+#define SECLOG			"[sec_input]"
+#define INPUT_LOG_BUF_SIZE	512
+
+#ifdef CONFIG_SEC_DEBUG_TSP_LOG
+//#include <linux/sec_debug.h>		/* exynos */
+#include <linux/input/sec_tsp_log.h>	/* qualcomm */
+
+#define input_dbg(mode, dev, fmt, ...)						\
+({										\
+	static char input_log_buf[INPUT_LOG_BUF_SIZE];				\
+	snprintf(input_log_buf, sizeof(input_log_buf), "%s %s", SECLOG, fmt);	\
+	dev_dbg(dev, input_log_buf, ## __VA_ARGS__);				\
+	if (mode) {								\
+		if (dev)							\
+			snprintf(input_log_buf, sizeof(input_log_buf), "%s %s",	\
+					dev_driver_string(dev), dev_name(dev));	\
+		else								\
+			snprintf(input_log_buf, sizeof(input_log_buf), "NULL");	\
+		sec_debug_tsp_log_msg(input_log_buf, fmt, ## __VA_ARGS__);	\
+	}									\
+})
+#define input_info(mode, dev, fmt, ...)						\
+({										\
+	static char input_log_buf[INPUT_LOG_BUF_SIZE];				\
+	snprintf(input_log_buf, sizeof(input_log_buf), "%s %s", SECLOG, fmt);	\
+	dev_info(dev, input_log_buf, ## __VA_ARGS__);				\
+	if (mode) {								\
+		if (dev)							\
+			snprintf(input_log_buf, sizeof(input_log_buf), "%s %s",	\
+					dev_driver_string(dev), dev_name(dev));	\
+		else								\
+			snprintf(input_log_buf, sizeof(input_log_buf), "NULL");	\
+		sec_debug_tsp_log_msg(input_log_buf, fmt, ## __VA_ARGS__);	\
+	}									\
+})
+#define input_err(mode, dev, fmt, ...)						\
+({										\
+	static char input_log_buf[INPUT_LOG_BUF_SIZE];				\
+	snprintf(input_log_buf, sizeof(input_log_buf), "%s %s", SECLOG, fmt);	\
+	dev_err(dev, input_log_buf, ## __VA_ARGS__);				\
+	if (mode) {								\
+		if (dev)							\
+			snprintf(input_log_buf, sizeof(input_log_buf), "%s %s",	\
+					dev_driver_string(dev), dev_name(dev));	\
+		else								\
+			snprintf(input_log_buf, sizeof(input_log_buf), "NULL");	\
+		sec_debug_tsp_log_msg(input_log_buf, fmt, ## __VA_ARGS__);	\
+	}									\
+})
+#define input_raw_info(mode, dev, fmt, ...)					\
+({										\
+	static char input_log_buf[INPUT_LOG_BUF_SIZE];				\
+	snprintf(input_log_buf, sizeof(input_log_buf), "%s %s", SECLOG, fmt);	\
+	dev_info(dev, input_log_buf, ## __VA_ARGS__);				\
+	if (mode) {								\
+		if (dev)							\
+			snprintf(input_log_buf, sizeof(input_log_buf), "%s %s", \
+					dev_driver_string(dev), dev_name(dev)); \
+		else								\
+			snprintf(input_log_buf, sizeof(input_log_buf), "NULL"); \
+		sec_debug_tsp_log_msg(input_log_buf, fmt, ## __VA_ARGS__);	\
+		sec_debug_tsp_raw_data_msg(input_log_buf, fmt, ## __VA_ARGS__);	\
+	}									\
+})
+#define input_log_fix()	sec_tsp_log_fix()
+#define input_raw_data_clear() sec_tsp_raw_data_clear()
+#else
+#define input_dbg(mode, dev, fmt, ...)						\
+({										\
+	static char input_log_buf[INPUT_LOG_BUF_SIZE];				\
+	snprintf(input_log_buf, sizeof(input_log_buf), "%s %s", SECLOG, fmt);	\
+	dev_dbg(dev, input_log_buf, ## __VA_ARGS__);				\
+})
+#define input_info(mode, dev, fmt, ...)						\
+({										\
+	static char input_log_buf[INPUT_LOG_BUF_SIZE];				\
+	snprintf(input_log_buf, sizeof(input_log_buf), "%s %s", SECLOG, fmt);	\
+	dev_info(dev, input_log_buf, ## __VA_ARGS__);				\
+})
+#define input_err(mode, dev, fmt, ...)						\
+({										\
+	static char input_log_buf[INPUT_LOG_BUF_SIZE];				\
+	snprintf(input_log_buf, sizeof(input_log_buf), "%s %s", SECLOG, fmt);	\
+	dev_err(dev, input_log_buf, ## __VA_ARGS__);				\
+})
+#define input_raw_info(mode, dev, fmt, ...) input_info(mode, dev, fmt, ## __VA_ARGS__)
+#define input_log_fix()	{}
+#define input_raw_data_clear() {}
+#endif
+
+
+/*
  * The event structure itself
  */
 
@@ -61,9 +155,14 @@ struct input_id {
  * Note that input core does not clamp reported values to the
  * [minimum, maximum] limits, such task is left to userspace.
  *
- * Resolution for main axes (ABS_X, ABS_Y, ABS_Z) is reported in
- * units per millimeter (units/mm), resolution for rotational axes
- * (ABS_RX, ABS_RY, ABS_RZ) is reported in units per radian.
+ * The default resolution for main axes (ABS_X, ABS_Y, ABS_Z)
+ * is reported in units per millimeter (units/mm), resolution
+ * for rotational axes (ABS_RX, ABS_RY, ABS_RZ) is reported
+ * in units per radian.
+ * When INPUT_PROP_ACCELEROMETER is set the resolution changes.
+ * The main axes (ABS_X, ABS_Y, ABS_Z) are then reported in
+ * in units per g (units/g) and in units per degree per second
+ * (units/deg/s) for rotational axes (ABS_RX, ABS_RY, ABS_RZ).
  */
 struct input_absinfo {
 	__s32 value;

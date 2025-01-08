@@ -17,6 +17,8 @@
 #include <linux/bitops.h>
 #include <linux/compiler.h>
 #include <linux/atomic.h>
+#include <linux/rhashtable.h>
+#include <linux/list.h>
 
 #include <linux/netfilter/nf_conntrack_tcp.h>
 #include <linux/netfilter/nf_conntrack_dccp.h>
@@ -25,6 +27,18 @@
 #include <net/netfilter/ipv6/nf_conntrack_icmpv6.h>
 
 #include <net/netfilter/nf_conntrack_tuple.h>
+// SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA {
+#define PROCESS_NAME_LEN_NAP	128
+#define DOMAIN_NAME_LEN_NAP	255
+// SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA }
+
+#define SIP_LIST_ELEMENTS	2
+
+struct sip_length {
+	int msg_length[SIP_LIST_ELEMENTS];
+	int skb_len[SIP_LIST_ELEMENTS];
+	int data_len[SIP_LIST_ELEMENTS];
+};
 
 /* per conntrack: protocol private data */
 union nf_conntrack_proto {
@@ -69,6 +83,11 @@ struct nf_conn_help {
 
 #include <net/netfilter/ipv4/nf_conntrack_ipv4.h>
 #include <net/netfilter/ipv6/nf_conntrack_ipv6.h>
+
+/* Handle NATTYPE Stuff,only if NATTYPE module was defined */
+#ifdef CONFIG_IP_NF_TARGET_NATTYPE_MODULE
+#include <linux/netfilter_ipv4/ipt_NATTYPE.h>
+#endif
 
 struct nf_conn {
 	/* Usage count in here is 1 for hash table, 1 per skb,
@@ -119,8 +138,50 @@ struct nf_conn {
 	/* Extensions */
 	struct nf_ct_ext *ext;
 
+	void *sfe_entry;
+
+#ifdef CONFIG_IP_NF_TARGET_NATTYPE_MODULE
+	unsigned long nattype_entry;
+#endif
+	struct list_head sip_segment_list;
+	const char *dptr_prev;
+	struct sip_length segment;
+	bool sip_original_dir;
+	bool sip_reply_dir;
+
 	/* Storage reserved for other modules, must be the last member */
 	union nf_conntrack_proto proto;
+	// SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA {
+	/* The number of application layer bytes sent by the socket */
+	__u64   knox_sent;
+	/* The number of application layer bytes recieved by the socket */
+	__u64   knox_recv;
+	/* The uid which created the socket */
+	uid_t   knox_uid;
+	/* The pid under which the socket was created */
+	pid_t   knox_pid;
+	/* The parent user id under which the socket was created */
+	uid_t   knox_puid;
+	/* The epoch time at which the socket was opened */
+	__u64   open_time;
+	/* The name of the process which created the socket */
+	char process_name[PROCESS_NAME_LEN_NAP];
+	/* The name of the parent process which created the socket */
+	char parent_process_name[PROCESS_NAME_LEN_NAP];
+	/*  The Domain name associated with the ip address of the socket. The size needs to be in sync with the userspace implementation */
+	char domain_name[DOMAIN_NAME_LEN_NAP];
+	/* The parent process id under which the socket was created */
+	pid_t   knox_ppid;
+	/* The interface used by the flow to transmit packet */
+	char interface_name[IFNAMSIZ];
+	/* Atomic variable indicating start of flow */
+	atomic_t startFlow;
+	/* The value at which this ct is considered timed-out for intermediate flows */
+	/* Use 'u32 npa_timeout' if struct nf_conn->timeout is of type u32;  Use 'struct timer_list npa_timeout' if struct nf_conn->timeout is of type struct timer_list;*/
+	u32 npa_timeout;
+	/* Atomic variable indicating end of intermediate flow */
+	atomic_t intermediateFlow;
+	// SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA }
 };
 
 static inline struct nf_conn *
@@ -306,13 +367,14 @@ static inline bool nf_ct_should_gc(const struct nf_conn *ct)
 
 struct kernel_param;
 
-int nf_conntrack_set_hashsize(const char *val, struct kernel_param *kp);
+int nf_conntrack_set_hashsize(const char *val, const struct kernel_param *kp);
 int nf_conntrack_hash_resize(unsigned int hashsize);
 
 extern struct hlist_nulls_head *nf_conntrack_hash;
 extern unsigned int nf_conntrack_htable_size;
 extern seqcount_t nf_conntrack_generation;
 extern unsigned int nf_conntrack_max;
+extern unsigned int nf_conntrack_pkt_threshold;
 
 /* must be called with rcu read lock held */
 static inline void
