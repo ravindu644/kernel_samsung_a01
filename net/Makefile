@@ -81,3 +81,9 @@ obj-y				+= l3mdev/
 endif
 obj-$(CONFIG_QRTR)		+= qrtr/
 obj-$(CONFIG_NET_NCSI)		+= ncsi/
+obj-$(CONFIG_RMNET_DATA) += rmnet_data/
+obj-$(CONFIG_IPC_ROUTER)	+= ipc_router/
+
+# SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA {
+obj-$(CONFIG_KNOX_NCM)		+= ncm/
+# SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA }
