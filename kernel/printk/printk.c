@@ -45,6 +45,7 @@
 #include <linux/utsname.h>
 #include <linux/ctype.h>
 #include <linux/uio.h>
+#include <soc/qcom/boot_stats.h>
 
 #include <asm/uaccess.h>
 #include <asm/sections.h>
@@ -55,6 +56,17 @@
 #include "console_cmdline.h"
 #include "braille.h"
 #include "internal.h"
+
+#ifdef CONFIG_EARLY_PRINTK_DIRECT
+extern void printascii(char *);
+#endif
+
+#include <linux/sec_debug.h>
+
+#ifdef CONFIG_SEC_LOG_BUF
+#define _ALIGN_DOWN(addr, size)  ((addr)&(~((size)-1)))
+#define _ALIGN_UP(addr, size)    _ALIGN_DOWN(addr + size - 1, size)
+#endif
 
 int console_printk[4] = {
 	CONSOLE_LOGLEVEL_DEFAULT,	/* console_loglevel */
@@ -338,11 +350,49 @@ struct printk_log {
 	u8 facility;		/* syslog facility */
 	u8 flags:5;		/* internal record flags */
 	u8 level:3;		/* syslog level */
+#ifdef CONFIG_SEC_LOG_BUF
+	char process[TASK_COMM_LEN];	/* process Name CONFIG_PRINTK_PROCESS */
+	pid_t pid;			/* process id CONFIG_PRINTK_PROCESS */
+	unsigned int cpu;		/* cpu core number CONFIG_PRINTK_PROCESS */
+	bool in_interrupt;		/* in interrupt CONFIG_PRINTK_PROCESS */
+#endif
 }
 #ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
 __packed __aligned(4)
 #endif
 ;
+
+#ifdef CONFIG_SEC_LOG_BUF
+static void inline save_process(struct printk_log *msg)
+{
+	sec_debug_strcpy_task_comm(msg->process, current->comm);
+	msg->pid = task_pid_nr(current);
+	msg->cpu = smp_processor_id();
+	msg->in_interrupt = in_interrupt() ? true : false;
+}
+
+static size_t inline print_process(const struct printk_log *msg, char *buf)
+{
+	if (!buf)
+		return snprintf(NULL, 0, "%c[%1d:%15s:%5d] ", ' ', 0, " ", 0);
+
+	return sprintf(buf, "%c[%1d:%15s:%5d] ",
+					msg->in_interrupt ? 'I' : ' ',
+					msg->cpu,
+					msg->process,
+					msg->pid);
+}
+
+#else
+static void inline save_process(struct printk_log *msg) { }
+static size_t inline print_process(const struct printk_log *msg, char *buf) { return 0; }
+#endif
+
+#ifdef CONFIG_SEC_LOG_BUF_NO_CONSOLE
+static void __sec_log_buf_add(const struct printk_log *msg);
+#else
+static inline void __sec_log_buf_add(const struct printk_log *msg) {}
+#endif
 
 /*
  * The logbuf_lock protects kmsg buffer, indices, counters.  This can be taken
@@ -374,8 +424,13 @@ static u32 console_idx;
 static u64 clear_seq;
 static u32 clear_idx;
 
+#ifdef CONFIG_SEC_LOG_BUF
+#define PREFIX_MAX		48
+#define LOG_LINE_MAX		(2048 - PREFIX_MAX)
+#else
 #define PREFIX_MAX		32
 #define LOG_LINE_MAX		(1024 - PREFIX_MAX)
+#endif
 
 #define LOG_LEVEL(v)		((v) & 0x07)
 #define LOG_FACILITY(v)		((v) >> 3 & 0xff)
@@ -498,7 +553,9 @@ static u32 msg_used_size(u16 text_len, u16 dict_len, u32 *pad_len)
 	size = sizeof(struct printk_log) + text_len + dict_len;
 	*pad_len = (-size) & (LOG_ALIGN - 1);
 	size += *pad_len;
-
+#ifdef CONFIG_SEC_LOG_BUF /* 8 bytes align for 64 bit XBL ramdump */
+	size = _ALIGN_UP(size,8);
+#endif
 	return size;
 }
 
@@ -583,6 +640,9 @@ static int log_store(int facility, int level,
 	/* insert message */
 	log_next_idx += msg->len;
 	log_next_seq++;
+
+	save_process(msg);
+	__sec_log_buf_add(msg);
 
 	return msg->text_len;
 }
@@ -723,11 +783,13 @@ static ssize_t devkmsg_write(struct kiocb *iocb, struct iov_iter *from)
 	if (devkmsg_log & DEVKMSG_LOG_MASK_OFF)
 		return len;
 
+#ifndef CONFIG_SERIAL_MSM_CONSOLE
 	/* Ratelimit when not explicitly enabled. */
 	if (!(devkmsg_log & DEVKMSG_LOG_MASK_ON)) {
 		if (!___ratelimit(&user->rs, current->comm))
 			return ret;
 	}
+#endif
 
 	buf = kmalloc(len+1, GFP_KERNEL);
 	if (buf == NULL)
@@ -1061,6 +1123,7 @@ void __init setup_log_buf(int early)
 	if (!new_log_buf_len)
 		return;
 
+	set_memsize_kernel_type(MEMSIZE_KERNEL_LOGBUF);
 	if (early) {
 		new_log_buf =
 			memblock_virt_alloc(new_log_buf_len, LOG_ALIGN);
@@ -1068,6 +1131,7 @@ void __init setup_log_buf(int early)
 		new_log_buf = memblock_virt_alloc_nopanic(new_log_buf_len,
 							  LOG_ALIGN);
 	}
+	set_memsize_kernel_type(MEMSIZE_KERNEL_OTHERS);
 
 	if (unlikely(!new_log_buf)) {
 		pr_err("log_buf_len: %lu bytes not available\n",
@@ -1202,6 +1266,8 @@ static size_t print_prefix(const struct printk_log *msg, bool syslog, char *buf)
 	}
 
 	len += print_time(msg->ts_nsec, buf ? buf + len : NULL);
+	len += print_process(msg, buf ? buf + len : NULL);
+
 	return len;
 }
 
@@ -1833,6 +1899,10 @@ asmlinkage int vprintk_emit(int facility, int level,
 		}
 	}
 
+#ifdef CONFIG_EARLY_PRINTK_DIRECT
+	printascii(text);
+#endif
+
 	if (level == LOGLEVEL_DEFAULT)
 		level = default_message_loglevel;
 
@@ -2120,10 +2190,13 @@ void resume_console(void)
 {
 	if (!console_suspend_enabled)
 		return;
+	place_marker("M - System Resume Started");
 	down_console_sem();
 	console_suspended = 0;
 	console_unlock();
 }
+
+#ifdef CONFIG_CONSOLE_FLUSH_ON_HOTPLUG
 
 /**
  * console_cpu_notify - print deferred console messages after CPU hotplug
@@ -2149,6 +2222,8 @@ static int console_cpu_notify(struct notifier_block *self,
 	}
 	return NOTIFY_OK;
 }
+
+#endif
 
 /**
  * console_lock - lock the console system for exclusive use.
@@ -2798,7 +2873,9 @@ static int __init printk_late_init(void)
 				unregister_console(con);
 		}
 	}
+#ifdef CONFIG_CONSOLE_FLUSH_ON_HOTPLUG
 	hotcpu_notifier(console_cpu_notify, 0);
+#endif
 	return 0;
 }
 late_initcall(printk_late_init);
@@ -3264,4 +3341,47 @@ void show_regs_print_info(const char *log_lvl)
 	       log_lvl, current, task_stack_page(current));
 }
 
+#endif
+
+#ifdef CONFIG_SEC_LOG_BUF_NO_CONSOLE
+static void __sec_log_buf_add(const struct printk_log *msg)
+{
+	static char tmp[PAGE_SIZE];
+	unsigned int size;
+
+	size = msg_print_text(msg, true, tmp, PAGE_SIZE);
+	sec_log_buf_write(tmp, size);
+
+	if (unlikely(msg->pid == 1))
+		sec_init_log_buf_write(tmp, size);
+}
+
+void __init sec_log_buf_pull_early_buffer(bool *init_done)
+{
+	u32 current_idx = log_first_idx;
+	struct printk_log *msg;
+	unsigned long flags;
+
+	raw_spin_lock_irqsave(&logbuf_lock, flags);
+
+	*init_done = true;
+
+	while (current_idx < log_next_idx) {
+		msg = log_from_idx(current_idx);
+		__sec_log_buf_add(msg);
+		current_idx = log_next(current_idx);
+	}
+
+	raw_spin_unlock_irqrestore(&logbuf_lock, flags);
+}
+#endif
+
+#ifdef CONFIG_SEC_DEBUG_SUMMARY
+void sec_debug_summary_set_klog_info(struct sec_debug_summary_data_apss *apss)
+{
+	apss->log.first_idx_paddr = (unsigned int)__pa(&log_first_idx);
+	apss->log.next_idx_paddr = (unsigned int)__pa(&log_next_idx);
+	apss->log.log_paddr = (unsigned long)__pa(log_buf);
+	apss->log.size_paddr = (unsigned long)__pa(&log_buf_len);
+}
 #endif
