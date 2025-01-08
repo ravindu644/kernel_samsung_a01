@@ -68,6 +68,11 @@ do {									\
 /* Length of a SCSI Command Data Block */
 #define MAX_COMMAND_SIZE	16
 
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
+/* SCSI commands that we recognize */
+#define READ_CD					0xbe
+#endif
+
 /* SCSI Sense Key/Additional Sense Code/ASC Qualifier values */
 #define SS_NO_SENSE				0
 #define SS_COMMUNICATION_FAILURE		0x040800
@@ -128,6 +133,7 @@ static inline bool fsg_lun_is_open(struct fsg_lun *curlun)
 
 /* Default size of buffer length. */
 #define FSG_BUFLEN	((u32)16384)
+#define EXTRA_ALLOCATION_SIZE	((u32)256)
 
 /* Maximal number of LUNs supported in mass storage function */
 #define FSG_MAX_LUNS	16

@@ -193,6 +193,9 @@ int usb_register_dev(struct usb_interface *intf,
 	}
 	if (intf->minor < 0) {
 		up_write(&minor_rwsem);
+	}
+	if (intf->minor < 0) {
+		up_write(&minor_rwsem);
 		return -EXFULL;
 	}
 
