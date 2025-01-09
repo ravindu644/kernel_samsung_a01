@@ -20,7 +20,7 @@ jobs:
     - name: Set up build environment
       run: |
         sudo apt update -y  
-        sudo apt install libncurses5-dev python2 libtinfo5 -y  
+        sudo apt install libncurses5-dev -y
         export PATH=$HOME/toolchains/proton-12/bin:$HOME/toolchains/aarch64-linaro-7.5/bin:$PATH
 
     - name: Compile Kernel
