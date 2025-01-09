@@ -465,11 +465,11 @@
 		*(.text.hot .text.hot.*)            \
 		*(TEXT_MAIN .text.fixup)            \
 		*(.text.unlikely .text.unlikely.*)  \
-		*(.text.unknown .text.unknown.*)    \		
+		*(.text.unknown .text.unknown.*)    \
 		*(.text..ftrace)					\
 		*(TEXT_CFI_MAIN) 					\
 		*(.ref.text)						\
-		*(.text.asan.* .text.tsan.*)				\
+		*(.text.asan.* .text.tsan.*)		\
 	MEM_KEEP(init.text)						\
 	MEM_KEEP(exit.text)						\
 
